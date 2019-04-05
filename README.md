@@ -2,6 +2,13 @@
 
 Multiplatform key logger application written in Python.
 
+## Features
+
+* catching keyboard keys
+* log keys into file
+* sending keys chunk over SMTP
+* CLI configuration
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
@@ -20,10 +27,38 @@ sudo apt-get update \
     && pip install 'python-xlib==0.25' 'pyxhook==1.0.0' 'six==1.12.0'
 ```
 
+### Usage
+
+```
+usage: Key logger [options]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --output-file OUTPUT_FILE
+                        Output file for storing keys [default: ./log.txt].
+  --rw                  Rewrite output log file if exists [default: false].
+```
+
 ### Running
+
+Running with development environment.
+
+To run with default configuration:
 
 ```
 venv/bin/python linux/keylogger.py
+```
+
+To run and rewrite log file:
+
+```
+venv/bin/python linux/keylogger.py --rw
+```
+
+To run and set log file path:
+
+```
+venv/bin/python linux/keylogger.py --output-file=./my-log.txt
 ```
 
 ## Built With
